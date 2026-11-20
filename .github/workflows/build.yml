@@ -16,7 +16,7 @@ jobs:
       - name: Add reference assemblies
         uses: Pathoschild/SMAPI-ModBuildWorkflow/add-reference-assemblies@v1
       - name: Build DLL
-        run: dotnet build FishingTrawler/FishingTrawler.csproj -c Release -p:RunPostBuildEvent=false -p:EnableModDeploy=false -p:EnableModZip=false
+        run: dotnet build FishingTrawler/FishingTrawler.csproj -c Release -p:PostBuildEvent= -p:EnableModDeploy=false -p:EnableModZip=false
       - name: Upload DLL
         uses: actions/upload-artifact@v4
         with:
