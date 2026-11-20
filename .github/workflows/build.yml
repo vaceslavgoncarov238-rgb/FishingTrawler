@@ -1,0 +1,24 @@
+name: Build FishingTrawler DLL
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET 6
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 6.0.x
+      - name: Add reference assemblies
+        uses: Pathoschild/SMAPI-ModBuildWorkflow/add-reference-assemblies@v1
+      - name: Build DLL
+        run: dotnet build FishingTrawler/FishingTrawler.csproj -c Release -p:RunPostBuildEvent=false -p:EnableModDeploy=false -p:EnableModZip=false
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: FishingTrawler-Android-Fix
+          path: FishingTrawler/bin/Release/net6.0/FishingTrawler.dll
