@@ -405,6 +405,12 @@ namespace FishingTrawler
             // Fade the notification, if applicable
             notificationManager.FadeNotification(0.1f);
 
+            // Auto-repair holes and nets around the player every 10 ticks (for Android Tap-to-Move support)
+            if (e.IsMultipleOf(10))
+            {
+                TryRepairNearPlayer();
+            }
+
             if (IsMainDeckhand() && _trawlerCabin.Value.HasLeftCabin())
             {
                 _trawlerSurface.Value.SetFlagTexture(GetHoistedFlag());
@@ -462,6 +468,49 @@ namespace FishingTrawler
             }
         }
 
+        private void TryRepairNearPlayer()
+        {
+            if (Game1.player?.currentLocation == null)
+            {
+                return;
+            }
+
+            string locationName = Game1.player.currentLocation.NameOrUniqueName;
+            int playerX = (int)Game1.player.Tile.X;
+            int playerY = (int)Game1.player.Tile.Y;
+
+            if (locationName == ModDataKeys.TRAWLER_HULL_LOCATION_NAME && _trawlerHull.Value != null)
+            {
+                for (int dx = -4; dx <= 4; dx++)
+                {
+                    for (int dy = -4; dy <= 4; dy++)
+                    {
+                        int tx = playerX + dx;
+                        int ty = playerY + dy;
+                        if (_trawlerHull.Value.AttemptPlugLeak(tx, ty, Game1.player))
+                        {
+                            BroadcastTrawlerEvent(EventType.HullHole, new Vector2(tx, ty), true, GetFarmersOnTrawler());
+                        }
+                    }
+                }
+            }
+            else if (locationName == ModDataKeys.TRAWLER_SURFACE_LOCATION_NAME && _trawlerSurface.Value != null)
+            {
+                for (int dx = -4; dx <= 4; dx++)
+                {
+                    for (int dy = -4; dy <= 4; dy++)
+                    {
+                        int tx = playerX + dx;
+                        int ty = playerY + dy;
+                        if (_trawlerSurface.Value.AttemptFixNet(tx, ty, Game1.player))
+                        {
+                            BroadcastTrawlerEvent(EventType.NetTear, new Vector2(tx, ty), true, GetFarmersOnTrawler());
+                        }
+                    }
+                }
+            }
+        }
+
         private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
         {
             if (!Context.IsWorldReady || Game1.activeClickableMenu != null)
@@ -477,37 +526,23 @@ namespace FishingTrawler
 
             if (Game1.player.currentLocation.NameOrUniqueName == ModDataKeys.TRAWLER_HULL_LOCATION_NAME)
             {
-                _trawlerHull.Value.AttemptPlugLeak((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y, Game1.player);
-                BroadcastTrawlerEvent(EventType.HullHole, new Vector2((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y), true, GetFarmersOnTrawler());
-
-                for (int dx = -1; dx <= 1; dx++)
+                if (_trawlerHull.Value.AttemptPlugLeak((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y, Game1.player))
                 {
-                    for (int dy = -3; dy <= 1; dy++)
-                    {
-                        int tx = (int)Game1.player.Tile.X + dx;
-                        int ty = (int)Game1.player.Tile.Y + dy;
-                        _trawlerHull.Value.AttemptPlugLeak(tx, ty, Game1.player);
-                        BroadcastTrawlerEvent(EventType.HullHole, new Vector2(tx, ty), true, GetFarmersOnTrawler());
-                    }
+                    BroadcastTrawlerEvent(EventType.HullHole, new Vector2((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y), true, GetFarmersOnTrawler());
                 }
+                TryRepairNearPlayer();
             }
             else if (Game1.player.currentLocation.NameOrUniqueName == ModDataKeys.TRAWLER_SURFACE_LOCATION_NAME)
             {
-                _trawlerSurface.Value.AttemptFixNet((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y, Game1.player);
-                _trawlerSurface.Value.AttemptFixNet((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y + 1, Game1.player);
-                BroadcastTrawlerEvent(EventType.NetTear, new Vector2((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y), true, GetFarmersOnTrawler());
-                BroadcastTrawlerEvent(EventType.NetTear, new Vector2((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y + 1), true, GetFarmersOnTrawler());
-
-                for (int dx = -1; dx <= 1; dx++)
+                if (_trawlerSurface.Value.AttemptFixNet((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y, Game1.player))
                 {
-                    for (int dy = -3; dy <= 1; dy++)
-                    {
-                        int tx = (int)Game1.player.Tile.X + dx;
-                        int ty = (int)Game1.player.Tile.Y + dy;
-                        _trawlerSurface.Value.AttemptFixNet(tx, ty, Game1.player);
-                        BroadcastTrawlerEvent(EventType.NetTear, new Vector2(tx, ty), true, GetFarmersOnTrawler());
-                    }
+                    BroadcastTrawlerEvent(EventType.NetTear, new Vector2((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y), true, GetFarmersOnTrawler());
                 }
+                if (_trawlerSurface.Value.AttemptFixNet((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y + 1, Game1.player))
+                {
+                    BroadcastTrawlerEvent(EventType.NetTear, new Vector2((int)e.Cursor.Tile.X, (int)e.Cursor.Tile.Y + 1), true, GetFarmersOnTrawler());
+                }
+                TryRepairNearPlayer();
             }
         }
 
@@ -525,7 +560,7 @@ namespace FishingTrawler
                 configAPI.AddNumberOption(ModManifest, () => config.minigameDuration, (val) => config.minigameDuration = val, () => i18n.Get("config.option.minigame_duration.name"), () => i18n.Get("config.option.minigame_duration.description"), 2.5f, 5f, 0.25f);
                 configAPI.AddNumberOption(ModManifest, () => config.minimumFishingLevel, (val) => config.minimumFishingLevel = val, () => i18n.Get("config.option.required_fishing_level.name"), () => i18n.Get("config.option.required_fishing_level.description"), 0, 10);
                 configAPI.AddBoolOption(ModManifest, () => config.disableScreenFade, (val) => config.disableScreenFade = val, () => i18n.Get("config.option.disable_screen_fade.name"), () => i18n.Get("config.option.disable_screen_fade.description"));
-                configAPI.AddBoolOption(ModManifest, () => config.useOldTrawlerSprite, (val) => config.useOldTrawlerSprite = val, () => i18n.Get("config.option.use_old_trawler_sprite.name"), () => i18n.Get("config.option.use_old_trawler_sprite.description")); ;
+                configAPI.AddBoolOption(ModManifest, () => config.useOldTrawlerSprite, (val) => config.useOldTrawlerSprite = val, () => i18n.Get("config.option.use_old_trawler_sprite.name"), () => i18n.Get("config.option.use_old_trawler_sprite.description"));
                 configAPI.AddNumberOption(ModManifest, () => config.fishPerNet, (val) => config.fishPerNet = val, () => i18n.Get("config.option.net_output.name"), () => i18n.Get("config.option.net_output.description"), 0f, 1f, 0.5f);
                 configAPI.AddNumberOption(ModManifest, () => config.engineFishBonus, (val) => config.engineFishBonus = val, () => i18n.Get("config.option.engine_boost.name"), () => i18n.Get("config.option.engine_boost.description"), 0, 2);
                 configAPI.AddNumberOption(ModManifest, () => config.hullEventFrequencyUpper, (val) => config.hullEventFrequencyUpper = val, () => i18n.Get("config.option.hull.event_frequency_upper.name"), () => i18n.Get("config.option.hull.event_frequency_upper.description"), 1, 15);
