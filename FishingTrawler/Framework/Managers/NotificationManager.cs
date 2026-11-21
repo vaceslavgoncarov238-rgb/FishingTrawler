@@ -104,12 +104,21 @@ namespace FishingTrawler.Framework.Managers
                     position = Game1.GlobalToLocal(new Vector2(8.5f, 0f) * 64f);
                     break;
                 default:
-                    position = Vector2.Zero;
+                    position = new Vector2(0f, 0f);
                     break;
             }
 
-            string cleanText = _activeNotification.Replace(Environment.NewLine, "").Replace('♡', '<');
-            SpriteText.drawStringWithScrollSpeechBubble(b, cleanText, (int)position.X, (int)position.Y, "", _notificationAlpha, 0.88f);
+            string text = _activeNotification.Replace(Environment.NewLine, "").Replace('♡', '<');
+
+            SpriteText.drawString(
+                b,
+                text,
+                (int)position.X,
+                (int)position.Y,
+                alpha: _notificationAlpha,
+                layerDepth: 0.88f,
+                drawBGScroll: 2
+            );
         }
     }
 }
