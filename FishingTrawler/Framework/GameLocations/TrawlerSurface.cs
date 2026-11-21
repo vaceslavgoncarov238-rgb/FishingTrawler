@@ -1,4 +1,4 @@
-﻿using FishingTrawler.Framework.GameLocations;
+using FishingTrawler.Framework.GameLocations;
 using FishingTrawler.Framework.Objects.Items.Rewards;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
@@ -85,23 +85,9 @@ namespace FishingTrawler.GameLocations
                 }
             }
 
-            // Set water tiles for Dynamic Reflections
+            // Initialize empty waterTiles without Water property to avoid Android mobile water shader glitch
             var backLayer = this.map.GetLayer("Back");
             this.waterTiles = new WaterTiles(new bool[backLayer.LayerWidth, backLayer.LayerHeight]);
-            for (int x = 0; x < backLayer.LayerWidth; x++)
-            {
-                for (int y = 0; y < backLayer.LayerHeight; y++)
-                {
-                    Tile tile = backLayer.PickTile(new Location(x * 64, y * 64), Game1.viewport.Size);
-
-                    if (tile is null || tile.TileIndex != 543)
-                    {
-                        continue;
-                    }
-
-                    tile.TileIndexProperties["Water"] = "T";
-                }
-            }
         }
 
         internal override void Reset()
@@ -358,8 +344,8 @@ namespace FishingTrawler.GameLocations
                 map.GetLayer(_ropeLayerName).Tiles[tileX, tileY].Properties.CopyFrom(firstTile.Properties);
 
                 playSound("harvest");
+                return true;
             }
-
 
             return false;
         }
