@@ -1,4 +1,4 @@
-﻿using FishingTrawler.GameLocations;
+using FishingTrawler.GameLocations;
 using FishingTrawler.Messages;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
@@ -29,28 +29,18 @@ namespace FishingTrawler.Framework.Managers
         // Split screen data
         private readonly PerScreen<int> _fishingTripTimer = new PerScreen<int>();
 
-        // Notificiation messages
-        private KeyValuePair<string, int> MESSAGE_EVERYTHING_FAILING;
-        private KeyValuePair<string, int> MESSAGE_LOSING_FISH;
-        private KeyValuePair<string, int> MESSAGE_MAX_LEAKS;
-        private KeyValuePair<string, int> MESSAGE_MULTI_PROBLEMS;
-        private KeyValuePair<string, int> MESSAGE_ENGINE_PROBLEM;
-        private KeyValuePair<string, int> MESSAGE_NET_PROBLEM;
-        private KeyValuePair<string, int> MESSAGE_LEAK_PROBLEM;
-
         public EventManager(IMonitor monitor)
         {
             _monitor = monitor;
-
-            // Set up notification messages
-            MESSAGE_EVERYTHING_FAILING = new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.ship_falling_apart"), 10);
-            MESSAGE_LOSING_FISH = new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.losing_fish"), 9);
-            MESSAGE_MAX_LEAKS = new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.taking_on_water"), 8);
-            MESSAGE_MULTI_PROBLEMS = new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.lots_of_problems"), 7);
-            MESSAGE_ENGINE_PROBLEM = new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.engine_failing"), 7);
-            MESSAGE_NET_PROBLEM = new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.nets_torn"), 6);
-            MESSAGE_LEAK_PROBLEM = new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.leak"), 5);
         }
+
+        private KeyValuePair<string, int> GetMessageEverythingFailing() => new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.ship_falling_apart"), 10);
+        private KeyValuePair<string, int> GetMessageLosingFish() => new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.losing_fish"), 9);
+        private KeyValuePair<string, int> GetMessageMaxLeaks() => new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.taking_on_water"), 8);
+        private KeyValuePair<string, int> GetMessageMultiProblems() => new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.lots_of_problems"), 7);
+        private KeyValuePair<string, int> GetMessageEngineProblem() => new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.engine_failing"), 7);
+        private KeyValuePair<string, int> GetMessageNetProblem() => new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.nets_torn"), 6);
+        private KeyValuePair<string, int> GetMessageLeakProblem() => new KeyValuePair<string, int>(FishingTrawler.i18n.Get("status_message.leak"), 5);
 
         internal void UpdateEvents(UpdateTickingEventArgs e, TrawlerCabin trawlerCabin, TrawlerSurface trawlerSurface, TrawlerHull trawlerHull)
         {
@@ -69,21 +59,6 @@ namespace FishingTrawler.Framework.Managers
             // Every x seconds recalculate the amount of fish caught / lost
             if (e.IsMultipleOf(_fishUpdateInterval))
             {
-                /* 
-                 * Engine States:
-                 * Fuel > 50% | Each working net gives one extra fish
-                 * Fuel <= 50% | Each working net give standard fish count (no bonus)
-                 * Fuel == 0% | Each working net gives 0 fish
-                 * 
-                 * Coal can be stacked up to three times by clicking the coal box three times
-                 * Each coal gives 10% fuel, with a full stack giving a bonus 5%
-                 */
-
-                /* 
-                 * Guidance Computer States:
-                 * Discovering | Computer is looking for a new trail to pursue
-                 * Awaiting Input | Computer is waiting for user to interact with it. Once interacted, the fishing trip will be extended by X seconds.
-                 */
                 trawlerSurface.UpdateFishCaught(trawlerHull.GetFuelLevel());
                 FishingTrawler.SyncTrawler(SyncType.FishCaught, trawlerSurface.fishCaughtQuantity, FishingTrawler.GetFarmersOnTrawler());
             }
@@ -180,13 +155,13 @@ namespace FishingTrawler.Framework.Managers
             // Check if all possible events are activated
             if (trawlerSurface.AreAllNetsRipped() && trawlerHull.IsEngineFailing() && trawlerHull.AreAllHolesLeaking())
             {
-                possibleMessages.Add(MESSAGE_EVERYTHING_FAILING);
+                possibleMessages.Add(GetMessageEverythingFailing());
             }
 
             // Add a generic message if there are lots of issues
             if (trawlerSurface.GetRippedNetsCount() + trawlerHull.GetLeakingHolesCount() + (trawlerHull.IsEngineFailing() ? 1 : 0) > 1)
             {
-                possibleMessages.Add(MESSAGE_MULTI_PROBLEMS);
+                possibleMessages.Add(GetMessageMultiProblems());
             }
             // Select highest priority item (priority == default_priority_level * frequency)
             return executedEvents == 0 ? null : possibleMessages.OrderByDescending(m => m.Value * possibleMessages.Count(p => p.Key == m.Key)).FirstOrDefault().Key;
@@ -235,7 +210,7 @@ namespace FishingTrawler.Framework.Managers
                         }
                     }
 
-                    possibleMessages.Add(trawlerHull.AreAllHolesLeaking() ? MESSAGE_MAX_LEAKS : MESSAGE_LEAK_PROBLEM);
+                    possibleMessages.Add(trawlerHull.AreAllHolesLeaking() ? GetMessageMaxLeaks() : GetMessageLeakProblem());
 
                     executedEvents++;
                 }
@@ -249,7 +224,6 @@ namespace FishingTrawler.Framework.Managers
 
             return possibleMessages;
         }
-
 
         private List<KeyValuePair<string, int>> CreateEvents(TrawlerSurface trawlerSurface)
         {
@@ -279,7 +253,7 @@ namespace FishingTrawler.Framework.Managers
                     FishingTrawler.BroadcastTrawlerEvent(EventType.NetTear, new Vector2(tile.Value.X, tile.Value.Y), false, FishingTrawler.GetFarmersOnTrawler());
                 }
 
-                possibleMessages.Add(trawlerSurface.AreAllNetsRipped() ? MESSAGE_LOSING_FISH : MESSAGE_NET_PROBLEM);
+                possibleMessages.Add(trawlerSurface.AreAllNetsRipped() ? GetMessageLosingFish() : GetMessageNetProblem());
 
                 executedEvents++;
             }
@@ -287,6 +261,5 @@ namespace FishingTrawler.Framework.Managers
 
             return possibleMessages;
         }
-
     }
 }

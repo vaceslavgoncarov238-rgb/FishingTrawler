@@ -115,9 +115,10 @@ namespace FishingTrawler.Framework.Managers
                 text,
                 (int)position.X,
                 (int)position.Y,
+                width: 1500,
                 alpha: _notificationAlpha,
                 layerDepth: 0.88f,
-                drawBGScroll: 2
+                drawBGScroll: 0
             );
         }
     }
